@@ -4,11 +4,23 @@
 # https://docs.microsoft.com/azure/devops/pipelines/languages/python
 pool:
   vmImage: 'Ubuntu 16.04'
+strategy:
+# Using multiple python versions
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/languages/python?view=vsts&tabs=ubuntu-16-04#use-multiple-python-versions
+  matrix:
+    Python27:
+      python.version: '2.7'
+    Python35:
+      python.version: '3.5'
+    Python36:
+      python.version: '3.6'
+  maxParallel: 3
 
 steps:
+# https://docs.microsoft.com/en-us/azure/devops/pipelines/tasks/tool/use-python-version?view=vsts
 - task: UsePythonVersion@0
   inputs:
-    versionSpec: 3.5
+    versionSpec: '$(python.version)'
     architecture: 'x64'
 
 - task: PythonScript@0
@@ -26,6 +38,8 @@ steps:
       project_location = path.dirname(path.abspath(manage_py))
       print('Found Django project in', project_location)
       print('##vso[task.setvariable variable=projectRoot]{}'.format(project_location))
+      print('Hello World 1')
+      print('Hello World 2')
 
 - script: |
     python -m pip install --upgrade pip setuptools wheel django
@@ -39,8 +53,33 @@ steps:
   condition: succeededOrFailed()
   displayName: 'Run tests'
 
+- script: |
+    python -m pip install flake8
+    flake8 .
+  displayName: 'Run lint tests'
+
+- script: |
+    pip install pytest
+    pip install pytest-cov
+    pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
+  displayName: 'Test with pytest'
+
+- script: 'twine -r {feedName/EndpointName} --config-file $(PYPIRC_PATH) {package path to publish}'
+
+
 - task: PublishTestResults@2
   condition: succeededOrFailed()
   inputs:
     testResultsFiles: "**/TEST-*.xml"
-    testRunTitle: 'Python $(PYTHON_VERSION)'
+    testRunTitle: 'Publish test results for Python $(python.version)'
+
+- task: PublishCodeCoverageResults@1
+  inputs:
+    codeCoverageTool: Cobertura
+    summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+    reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+- task: TwineAuthenticate@0
+  inputs:
+    artifactFeeds: 'feed_name1, feed_name2'
+    externalFeeds: 'feed_name1, feed_name2'
