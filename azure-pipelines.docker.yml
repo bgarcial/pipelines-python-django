@@ -2,15 +2,6 @@
 # http://docs.microsoft.com/azure/devops/pipelines/languages/docker?view=vsts
 pool:
   vmImage: 'Ubuntu 16.04'
-strategy:
-  matrix:
-    Python27:
-      python.version: '2.7'
-    Python35:
-      python.version: '3.5'
-    Python36:
-      python.version: '3.6'
-  maxParallel: 3
 
 variables:
   imageName: 'pythonsample:$(Build.BuildId)'
@@ -19,7 +10,7 @@ variables:
 steps:
 - task: UsePythonVersion@0
   inputs:
-    versionSpec: '$(python.version)'
+    versionSpec: 3.5
     architecture: 'x64'
 
 - task: PythonScript@0
@@ -50,24 +41,11 @@ steps:
   condition: succeededOrFailed()
   displayName: 'Run tests'
 
-- script: |
-    python -m pip install flake8
-    flake8 .
-  displayName: 'Run lint tests'
-
-- script: |
-    pip install pytest
-    pip install pytest-cov
-    pytest tests --doctest-modules --junitxml=junit/test-results.xml --cov=com --cov-report=xml --cov-report=html
-  displayName: 'Test with pytest'
-
-- script: 'twine -r {feedName/EndpointName} --config-file $(PYPIRC_PATH) {package path to publish}'
-
 - task: PublishTestResults@2
   condition: succeededOrFailed()
   inputs:
     testResultsFiles: "**/TEST-*.xml"
-    testRunTitle: 'Publish test results for Python $(python.version)'
+    testRunTitle: 'Python $(PYTHON_VERSION)'
 
 - script: |
     docker build -f Dockerfile -t $(dockerId)/$(imageName) .
