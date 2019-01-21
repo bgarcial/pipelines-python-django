@@ -38,8 +38,7 @@ steps:
       project_location = path.dirname(path.abspath(manage_py))
       print('Found Django project in', project_location)
       print('##vso[task.setvariable variable=projectRoot]{}'.format(project_location))
-      print('Hello World 1')
-      print('Hello World 2')
+      
 
 - script: |
     python -m pip install --upgrade pip setuptools wheel django
@@ -65,7 +64,6 @@ steps:
   displayName: 'Test with pytest'
 
 - script: 'twine -r {feedName/EndpointName} --config-file $(PYPIRC_PATH) {package path to publish}'
-
 
 - task: PublishTestResults@2
   condition: succeededOrFailed()
